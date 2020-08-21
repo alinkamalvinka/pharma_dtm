@@ -5,8 +5,25 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from spacy.lang.en import English
 from nltk.corpus import wordnet as wn
 
+import spacy
+from collections import OrderedDict
+from spacy import displacy
+from typing import List
+import en_core_web_sm
+nlp = en_core_web_sm.load()
+
 nltk.download("wordnet")
 nltk.download("stopwords")
+
+
+def extract_entities(cleaned_data):
+    cleaned_data_copy = cleaned_data.reset_index(drop=True).copy()
+    lista_organisations = []
+    for i in range(len(cleaned_data)):
+        lista_org = org_entities(cleaned_data.iloc[i]["funding"]) or None
+        lista_organisations.append(lista_org)
+    cleaned_data_copy["org"] = lista_organisations
+    return cleaned_data_copy
 
 
 def clean_lower(data, var_list):
@@ -90,3 +107,11 @@ def create_processed(cleaned_data, var, time_var, stop_words):
     print("length    ", len(processed_docs))
 
     return time_intervals, time_slices, processed_docs
+
+
+def org_entities(data: str) -> List[str]:
+    entities = nlp(data).ents
+    orgs = filter(lambda e: e.label_ == 'ORG', entities)
+    orgs = map(lambda o: o.text, orgs)
+    return list(dict.fromkeys(orgs))
+
