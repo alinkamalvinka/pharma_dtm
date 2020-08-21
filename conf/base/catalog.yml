@@ -1,0 +1,3 @@
+parsed_data:
+  type: CSVLocalDataSet
+  filepath: "/Users/alina_popa/Documents/projects/internal/dynamic_topic_modelling/data/pharma_articles2000_2019.csv"

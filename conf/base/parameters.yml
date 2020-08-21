@@ -1,0 +1,23 @@
+# Scrapping parameters
+publisher_link: 'https://link.springer.com'
+journal_id: '11095'
+journal_volumes: 37
+journal_max_issues: 12
+start_year: 1984
+
+period_start: 2000
+period_end: 2021
+
+# Pre-processing
+var_list_text: ['title', 'abstract', 'funding']
+var_title: 'title'
+var_abstract: 'abstract'
+stop_words: ['pharmaceutical', 'study', 'aim', 'purpose', 'contribution', 'present',
+             'work', 'describe', 'pharmacy', 'carry', 'objective', 'examine']
+time_var: 'year'
+
+# Topic Modelling
+num_words_topic: 15
+min_articles: 3 # Minimum of articles per topic in a year
+
+num_topics: 85
