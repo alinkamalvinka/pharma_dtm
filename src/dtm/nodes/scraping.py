@@ -1,34 +1,24 @@
 from pyquery import PyQuery
 import urllib
 import lxml.html as html
-import pandas as pd
+import csv
 import numpy as np
 
 
-def get_journal_links(
-    publisher_link: str, journal_id, journal_volumes, journal_max_issues, start_year
-):
+def get_journal_links(journal_code, year, volume_start, volume_end, max_issues):
     links, years = [], []
-    year = start_year
-    print("Getting journal links")
 
-    for volume in range(1, journal_volumes + 1):
-        for issue in range(1, journal_max_issues + 1):
-            link = (
-                publisher_link
-                + "/journal/"
-                + journal_id
-                + "/"
-                + str(volume)
-                + "/"
-                + str(issue)
-            )
+    for volume in range(volume_start, volume_end + 1):
+        for issue in range(1, max_issues + 1):
+            link = "https://link.springer.com/journal/" + str(journal_code) + "/volumes-and-issues/" + str(volume) + "-" + str(issue)
             links.append(link)
             years.append(year)
 
-            link = link + "/page/2"
-            links.append(link)
-            years.append(year)
+            # links.append(link + "/page/2")
+            # years.append(year)
+            #
+            # links.append(link + "/page/3")
+            # years.append(year)
 
         year = year + 1
 
@@ -36,39 +26,32 @@ def get_journal_links(
 
 
 def get_article_links(journal_link):
-    print(journal_link)
-    try:
-        data = urllib.request.urlopen(journal_link).read()
-        pq = PyQuery(data)
-        articles = pq("h3.title>a").map(lambda _, x: x.attrib["href"])
-    except:
-        articles = []
-        pass
-    print("Getting article links")
+    data = urllib.request.urlopen(journal_link).read()
+    pq = PyQuery(data)
+    articles = pq('h3.c-card__title>a').map(lambda _, x: x.attrib['href'])
     return articles
 
 
-def get_all_links(
-    publisher_link, period_start, period_end, journal_links, journal_years
-):
+def get_all_links(period_start, period_end, addresses, years):
     period = np.arange(period_start, period_end)
     articles_list_links, articles_years = [], []
 
-    for link, year in zip(journal_links, journal_years):
+    for link, year in zip(addresses, years):
         if year in period:
-            articles_links = get_article_links(link)
-            for a_l in articles_links:
-                article_link = publisher_link + a_l
-                articles_list_links.append(article_link)
-                articles_years.append(year)
+            try:
+                articles_links = get_article_links(link)
+                for a_l in articles_links:
+                    article_link = a_l
+                    articles_list_links.append(article_link)
+                    articles_years.append(year)
+            except:
+                continue
 
-    print("length  links  ", len(articles_list_links))
 
     return articles_list_links, articles_years
 
 
 def extract_data(article_link):
-    print("extract data")
 
     test = PyQuery(["test"])
     title, tip, date, abstract, abbreviations, funding, keywords = (
@@ -89,7 +72,8 @@ def extract_data(article_link):
 
         tree = html.fromstring(html_data)
 
-        title_xpath = '//*[@id="main-content"]/div/main/article/div[1]/header/h1/text()'
+        title_xpath = '//*[@id="main-content"]/main/article/div[1]/header/h1/text()'
+
         title = tree.xpath(title_xpath)
 
         path_type = (
@@ -126,58 +110,3 @@ def extract_data(article_link):
 
     return title, tip, date, abstract, abbreviations, funding, keywords, status
 
-
-def extract_article_data(articles_links, articles_years):
-    columns = [
-        "title",
-        "type",
-        "date",
-        "abstract",
-        "abbreviations",
-        "funding",
-        "keywords",
-        "year",
-    ]
-    parsed_data = pd.DataFrame(columns=columns)
-    unparsed_articles_links = []
-    unparsed_articles_year = []
-
-    for article_link, article_year in zip(articles_links, articles_years):
-        (
-            title,
-            tip,
-            date,
-            abstract,
-            abbreviations,
-            funding,
-            keywords,
-            status,
-        ) = extract_data(article_link)
-
-        if status == 1:
-            parsed_data = parsed_data.append(
-                {
-                    "title": " ".join(title),
-                    "type": " ".join(tip),
-                    "date": date,
-                    "abstract": " ".join(abstract),
-                    "abbreviations": " ".join(abbreviations),
-                    "funding": " ".join(funding),
-                    "keywords": " ".join(keywords),
-                    "year": article_year,
-                },
-                ignore_index=True,
-            )
-        else:
-            unparsed_articles_links.append(article_link)
-            unparsed_articles_year.append(article_year)
-
-    unparsed_articles = pd.DataFrame(
-        {
-            "article_link": unparsed_articles_links,
-            "article_year": unparsed_articles_year,
-        }
-    )
-    parsed_data.to_csv("articles_parsed.csv")
-
-    return parsed_data, unparsed_articles
